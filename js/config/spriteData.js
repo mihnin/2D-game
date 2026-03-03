@@ -36,15 +36,15 @@ export const HERO_SPRITES = {
 export const ENEMY_SPRITES = {
   sheet: 'enemy',
   animations: {
-    // Row 1: Walk right (6 frames) — sprite-only bounds (text labels excluded)
+    // Row 1: Walk right (6 frames) — uniform 61px columns, text labels excluded
     walkRight: {
       frames: [
-        { x: 3, y: 53, w: 65, h: 136 },
-        { x: 71, y: 53, w: 49, h: 136 },
-        { x: 129, y: 53, w: 54, h: 136 },
-        { x: 185, y: 53, w: 63, h: 136 },
-        { x: 253, y: 53, w: 47, h: 136 },
-        { x: 306, y: 53, w: 63, h: 136 },
+        { x: 3, y: 53, w: 61, h: 136 },
+        { x: 64, y: 53, w: 61, h: 136 },
+        { x: 125, y: 53, w: 61, h: 136 },
+        { x: 186, y: 53, w: 61, h: 136 },
+        { x: 247, y: 53, w: 61, h: 136 },
+        { x: 308, y: 53, w: 61, h: 136 },
       ],
       fps: 8,
       loop: true,
@@ -63,15 +63,15 @@ export const ENEMY_SPRITES = {
       fps: 6,
       loop: false,
     },
-    // Row 3: Walk left (6 frames) — sprite-only bounds (text labels excluded)
+    // Row 3: Walk left (6 frames) — uniform 61px columns, text labels excluded
     walkLeft: {
       frames: [
-        { x: 4, y: 535, w: 62, h: 135 },
-        { x: 78, y: 535, w: 45, h: 135 },
-        { x: 125, y: 535, w: 59, h: 135 },
-        { x: 190, y: 535, w: 58, h: 135 },
-        { x: 251, y: 535, w: 51, h: 135 },
-        { x: 308, y: 535, w: 62, h: 135 },
+        { x: 4, y: 535, w: 61, h: 135 },
+        { x: 65, y: 535, w: 61, h: 135 },
+        { x: 126, y: 535, w: 61, h: 135 },
+        { x: 187, y: 535, w: 61, h: 135 },
+        { x: 248, y: 535, w: 61, h: 135 },
+        { x: 309, y: 535, w: 61, h: 135 },
       ],
       fps: 8,
       loop: true,

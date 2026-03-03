@@ -77,21 +77,25 @@ export class Enemy extends Entity {
   updateWalking(dt) {
     if (!this.target) return;
 
-    // Move toward player
     const dx = this.target.x - this.x;
-    if (Math.abs(dx) > 5) {
-      const direction = dx > 0 ? 1 : -1;
-      this.velocityX = direction * this.speed;
-      this.facingRight = direction > 0;
+    const shouldFaceRight = dx > 0;
 
-      // Update walk animation direction
-      if (this.facingRight && this.animation.getCurrentAnimationName() !== 'walkRight') {
-        this.animation.play('walkRight');
-      } else if (!this.facingRight && this.animation.getCurrentAnimationName() !== 'walkLeft') {
-        this.animation.play('walkLeft');
+    if (Math.abs(dx) > 30) {
+      // Far from player — walk toward them
+      this.velocityX = (shouldFaceRight ? 1 : -1) * this.speed;
+
+      // Update facing/animation only on actual direction change
+      if (shouldFaceRight !== this.facingRight) {
+        this.facingRight = shouldFaceRight;
+        this.animation.play(this.facingRight ? 'walkRight' : 'walkLeft');
       }
     } else {
+      // Close to player — stop, face them
       this.velocityX = 0;
+      if (shouldFaceRight !== this.facingRight) {
+        this.facingRight = shouldFaceRight;
+        this.animation.play(this.facingRight ? 'walkRight' : 'walkLeft');
+      }
     }
 
     this.x += this.velocityX * dt;
