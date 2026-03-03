@@ -21,6 +21,8 @@ describe('Player', () => {
       isLeft: () => false,
       isPunch: () => false,
       isJump: () => false,
+      isUp: () => false,
+      isDown: () => false,
     };
     player.handleInput(input);
     expect(player.velocityX).toBeGreaterThan(0);
@@ -34,6 +36,8 @@ describe('Player', () => {
       isLeft: () => true,
       isPunch: () => false,
       isJump: () => false,
+      isUp: () => false,
+      isDown: () => false,
     };
     player.handleInput(input);
     expect(player.velocityX).toBeLessThan(0);
@@ -46,6 +50,8 @@ describe('Player', () => {
       isLeft: () => false,
       isPunch: () => false,
       isJump: () => false,
+      isUp: () => false,
+      isDown: () => false,
     };
     player.handleInput(moveInput);
     expect(player.state).toBe(PlayerState.WALKING);
@@ -55,6 +61,8 @@ describe('Player', () => {
       isLeft: () => false,
       isPunch: () => false,
       isJump: () => false,
+      isUp: () => false,
+      isDown: () => false,
     };
     player.handleInput(idleInput);
     expect(player.velocityX).toBe(0);

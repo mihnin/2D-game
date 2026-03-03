@@ -64,15 +64,37 @@ export class ParticleSystem {
     }
   }
 
-  // Hit sparks
+  // Hit sparks — radial burst
   spawnHitEffect(x, y) {
-    for (let i = 0; i < 3; i++) {
+    const colors = ['#fff', '#ffeb3b', '#ff9800'];
+    for (let i = 0; i < 9; i++) {
+      const angle = (Math.PI * 2 * i) / 9 + (Math.random() - 0.5) * 0.5;
+      const speed = 80 + Math.random() * 80;
       this.particles.push(new Particle(x, y, {
-        vx: (Math.random() - 0.5) * 100,
-        vy: (Math.random() - 0.5) * 100,
-        life: 200,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 250 + Math.random() * 100,
         size: Math.random() * 4 + 2,
-        color: '#fff',
+        color: colors[Math.floor(Math.random() * colors.length)],
+        gravity: 150,
+      }));
+    }
+  }
+
+  // Combo sparks — bright burst scaled by multiplier
+  spawnComboSparks(x, y, multiplier) {
+    const count = 12 + multiplier * 4;
+    const colors = ['#fff', '#ffeb3b', '#ff9800', '#f44336'];
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.3;
+      const speed = 100 + Math.random() * 120;
+      this.particles.push(new Particle(x, y, {
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 350 + Math.random() * 150,
+        size: Math.random() * 5 + 3,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        gravity: 120,
       }));
     }
   }

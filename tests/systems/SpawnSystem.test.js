@@ -9,13 +9,13 @@ describe('SpawnSystem', () => {
   });
 
   test('spawns enemy when timer expires', () => {
-    const player = { x: 100, y: 420 };
+    const player = { x: 100, y: 420, isAlive: () => true };
     spawner.update(4.0, 0, player); // 4 seconds > default 3s interval
     expect(spawner.getEnemies().length).toBeGreaterThanOrEqual(1);
   });
 
   test('does not exceed max enemies on screen', () => {
-    const player = { x: 100, y: 420 };
+    const player = { x: 100, y: 420, isAlive: () => true };
     spawner.spawnInterval = 100; // Very fast spawn
     for (let i = 0; i < 10; i++) {
       spawner.update(1.0, 0, player);
@@ -35,7 +35,7 @@ describe('SpawnSystem', () => {
   });
 
   test('removes dead enemies', () => {
-    const player = { x: 100, y: 420 };
+    const player = { x: 100, y: 420, isAlive: () => true };
     const enemy = spawner.spawn(0, player);
     // Simulate death
     enemy.takeDamage(999);
@@ -49,7 +49,7 @@ describe('SpawnSystem', () => {
   });
 
   test('reset clears all enemies', () => {
-    const player = { x: 100, y: 420 };
+    const player = { x: 100, y: 420, isAlive: () => true };
     spawner.spawn(0, player);
     spawner.spawn(0, player);
     spawner.reset();
@@ -57,7 +57,7 @@ describe('SpawnSystem', () => {
   });
 
   test('spawns enemy off right edge of screen', () => {
-    const player = { x: 100, y: 420 };
+    const player = { x: 100, y: 420, isAlive: () => true };
     const enemy = spawner.spawn(200, player);
     expect(enemy.x).toBeGreaterThan(200 + 900); // camera + canvas width
   });

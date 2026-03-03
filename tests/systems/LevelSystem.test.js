@@ -26,19 +26,21 @@ describe('LevelSystem', () => {
     );
   });
 
-  test('levels up to level 3', () => {
+  test('levels up to last level', () => {
     levels.checkProgression(500);
     levels.checkProgression(1500);
-    expect(levels.getLevelIndex()).toBe(2);
-    expect(levels.getCurrentLevel().id).toBe(3);
+    levels.checkProgression(3000);
+    levels.checkProgression(5000);
+    levels.checkProgression(8000);
+    expect(levels.getLevelIndex()).toBe(LEVELS.length - 1);
+    expect(levels.getCurrentLevel().id).toBe(LEVELS.length);
   });
 
-  test('emits victory at victory score on level 3', () => {
+  test('emits victory at victory score on last level', () => {
     const onVictory = jest.fn();
     bus.on('victory', onVictory);
 
-    levels.checkProgression(500);
-    levels.checkProgression(1500);
+    levels.checkProgression(8000); // advance to last level
     levels.checkProgression(VICTORY_SCORE);
     expect(onVictory).toHaveBeenCalled();
     expect(levels.isVictory()).toBe(true);
@@ -49,13 +51,12 @@ describe('LevelSystem', () => {
     expect(levels.getLevelIndex()).toBe(0);
   });
 
-  test('does not emit victory on level 1 or 2', () => {
+  test('does not emit victory before last level', () => {
     const onVictory = jest.fn();
     bus.on('victory', onVictory);
-    levels.checkProgression(VICTORY_SCORE); // Still level 1 since we need to progress through levels
-    // After this call, we should be at level 3 (score >= 1500)
-    // and then victory check should trigger
-    expect(levels.getLevelIndex()).toBe(2);
+    levels.checkProgression(VICTORY_SCORE);
+    // Score 12000 >= all thresholds, so should advance to last level and trigger victory
+    expect(levels.getLevelIndex()).toBe(LEVELS.length - 1);
     expect(onVictory).toHaveBeenCalled();
   });
 

@@ -1,4 +1,5 @@
 import { aabbCollision } from '../utils/helpers.js';
+import { EnemyState } from '../entities/Enemy.js';
 
 export class CollisionSystem {
   // Check player's attack box against enemy bodies
@@ -7,7 +8,7 @@ export class CollisionSystem {
     if (!player.attackBox) return hits;
 
     for (const enemy of enemies) {
-      if (!enemy.isAlive() || enemy.state === 'dying' || enemy.state === 'dead') continue;
+      if (!enemy.isAlive() || enemy.state === EnemyState.DYING || enemy.state === EnemyState.DEAD) continue;
 
       if (aabbCollision(player.attackBox, enemy.getBounds())) {
         hits.push(enemy);

@@ -32,6 +32,15 @@ export class SceneManager {
     }
   }
 
+  // Resume a scene without calling enter() (used by PauseScene)
+  resumeTo(name) {
+    if (this.currentScene && this.currentScene.exit) {
+      this.currentScene.exit();
+    }
+    this.currentScene = this.scenes.get(name);
+    this.currentSceneName = name;
+  }
+
   getCurrentName() {
     return this.currentSceneName;
   }

@@ -12,11 +12,6 @@ export class Entity {
     this.facingRight = true;
   }
 
-  update(dt) {
-    this.x += this.velocityX * dt;
-    this.y += this.velocityY * dt;
-  }
-
   takeDamage(amount) {
     if (!this.alive) return;
     this.hp -= amount;
@@ -36,13 +31,6 @@ export class Entity {
       y: this.y,
       width: this.width,
       height: this.height,
-    };
-  }
-
-  getCenter() {
-    return {
-      x: this.x + this.width / 2,
-      y: this.y + this.height / 2,
     };
   }
 }

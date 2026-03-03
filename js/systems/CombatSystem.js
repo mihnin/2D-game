@@ -1,6 +1,7 @@
 import {
   PLAYER_PUNCH_DAMAGE, ENEMY_CONTACT_DAMAGE, ENEMY_CONTACT_COOLDOWN,
   KILL_SCORE, COMBO_TIMEOUT, COMBO_MULTIPLIERS,
+  COMBO_DAMAGE_SCALE, KNOCKBACK_FORCE, HITSTOP_DURATION,
 } from '../config/constants.js';
 
 export class CombatSystem {
@@ -22,7 +23,14 @@ export class CombatSystem {
       if (this.hitEnemiesThisPunch.has(enemy)) continue;
       this.hitEnemiesThisPunch.add(enemy);
 
-      enemy.takeDamage(PLAYER_PUNCH_DAMAGE);
+      // Combo damage scaling: higher combo = more damage
+      const damage = Math.round(
+        PLAYER_PUNCH_DAMAGE * (1 + (this.comboMultiplier - 1) * COMBO_DAMAGE_SCALE)
+      );
+
+      // Knockback: push enemy away from player
+      const knockbackDir = player.facingRight ? KNOCKBACK_FORCE : -KNOCKBACK_FORCE;
+      enemy.takeDamage(damage, knockbackDir);
 
       // Update combo
       this.comboCount++;
@@ -49,11 +57,12 @@ export class CombatSystem {
         });
       }
 
-      // Emit hit event for particles
+      // Emit hit event for particles + hitstop
       this.eventBus.emit('enemyHit', {
         x: enemy.x + enemy.width / 2,
         y: enemy.y + 20,
-        damage: PLAYER_PUNCH_DAMAGE,
+        damage,
+        hitstopMs: HITSTOP_DURATION,
       });
     }
   }

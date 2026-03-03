@@ -1,4 +1,5 @@
 import { CANVAS_WIDTH, CANVAS_HEIGHT, COLORS } from '../config/constants.js';
+import { BACKGROUND_REGIONS } from '../config/spriteData.js';
 
 export class MenuScene {
   constructor(sceneManager, inputManager, assetLoader) {
@@ -114,9 +115,11 @@ export class MenuScene {
 
     const controls = [
       ['Move Left / Right', 'Arrow Keys or A / D'],
+      ['Move Up / Down', 'Arrow Up/Down or W / S'],
       ['Jump', 'Space'],
       ['Punch', 'Left Ctrl or Right Click'],
       ['Pause', 'Escape'],
+      ['Mute / Unmute', 'N'],
     ];
 
     ctx.font = '18px Arial';

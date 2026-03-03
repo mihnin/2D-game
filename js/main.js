@@ -2,6 +2,7 @@ import { GameLoop } from './core/GameLoop.js';
 import { InputManager } from './core/InputManager.js';
 import { AssetLoader } from './core/AssetLoader.js';
 import { SceneManager } from './core/SceneManager.js';
+import { AudioManager } from './core/AudioManager.js';
 import { MenuScene } from './scenes/MenuScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { PauseScene } from './scenes/PauseScene.js';
@@ -18,6 +19,7 @@ class Game {
 
     this.assets = new AssetLoader();
     this.input = new InputManager();
+    this.audio = new AudioManager();
     this.sceneManager = new SceneManager();
     this.gameLoop = new GameLoop(
       (dt) => this.update(dt),
@@ -32,8 +34,10 @@ class Game {
     // Load all assets
     const manifest = {
       hero: 'avatar.png',
-      enemy: 'solder.png',
+      enemy2: 'solde2.png',
+      enemy3: '3.png',
       backgrounds: 'fone.png',
+      backgrounds2: 'fone2.png',
     };
 
     try {
@@ -45,7 +49,8 @@ class Game {
       // Uses flood fill from edges — safe for all sprites
       if (loadingText) loadingText.textContent = 'Processing sprites...';
       this.assets.removeBackground('hero');
-      this.assets.removeBackground('enemy');
+      this.assets.removeBackground('enemy2');
+      this.assets.removeBackground('enemy3');
 
       if (loadingBar) loadingBar.style.width = '100%';
       if (loadingText) loadingText.textContent = 'Ready!';
@@ -58,9 +63,19 @@ class Game {
     // Init input
     this.input.init();
 
+    // Unlock AudioContext on first user interaction (autoplay policy)
+    const unlockAudio = () => {
+      this.audio._ensureContext();
+      this.audio.resume();
+      document.removeEventListener('keydown', unlockAudio);
+      document.removeEventListener('mousedown', unlockAudio);
+    };
+    document.addEventListener('keydown', unlockAudio);
+    document.addEventListener('mousedown', unlockAudio);
+
     // Register scenes
     this.sceneManager.add('menu', new MenuScene(this.sceneManager, this.input, this.assets));
-    this.sceneManager.add('game', new GameScene(this.sceneManager, this.input, this.assets));
+    this.sceneManager.add('game', new GameScene(this.sceneManager, this.input, this.assets, this.audio));
     this.sceneManager.add('pause', new PauseScene(this.sceneManager, this.input));
     this.sceneManager.add('gameover', new GameOverScene(this.sceneManager, this.input));
     this.sceneManager.add('victory', new VictoryScene(this.sceneManager, this.input));

@@ -87,6 +87,18 @@ export class InputManager {
     return this.isKeyPressed('ControlLeft') || this.isKeyPressed('ControlRight') || this.isKeyPressed('RightClick');
   }
 
+  isUp() {
+    return this.isKeyDown('ArrowUp') || this.isKeyDown('KeyW');
+  }
+
+  isDown() {
+    return this.isKeyDown('ArrowDown') || this.isKeyDown('KeyS');
+  }
+
+  isMute() {
+    return this.isKeyPressed('KeyN');
+  }
+
   isPause() {
     return this.isKeyPressed('Escape');
   }

@@ -1,4 +1,5 @@
 import { Enemy, EnemyState } from '../../js/entities/Enemy.js';
+import { WORLD_WIDTH } from '../../js/config/constants.js';
 
 describe('Enemy', () => {
   let enemy;
@@ -13,19 +14,23 @@ describe('Enemy', () => {
     expect(enemy.facingRight).toBe(false);
   });
 
-  test('moves toward target player', () => {
-    const mockPlayer = { x: 100, y: 420 };
-    enemy.setTarget(mockPlayer);
+  test('patrols left by default', () => {
     enemy.update(0.016);
-    expect(enemy.velocityX).toBeLessThan(0); // Moving left toward player
+    expect(enemy.velocityX).toBeLessThan(0); // Moving left
   });
 
-  test('faces right when target is to the right', () => {
-    enemy.x = 50;
-    const mockPlayer = { x: 800, y: 420 };
-    enemy.setTarget(mockPlayer);
+  test('reverses direction at left world boundary', () => {
+    enemy.x = 40; // Near left edge (margin = 50)
     enemy.update(0.016);
     expect(enemy.facingRight).toBe(true);
+  });
+
+  test('reverses direction at right world boundary', () => {
+    enemy.x = WORLD_WIDTH - enemy.width - 40; // Near right edge
+    enemy.facingRight = true;
+    enemy.animation.play('walkRight');
+    enemy.update(0.016);
+    expect(enemy.facingRight).toBe(false);
   });
 
   test('takes damage and flashes white', () => {

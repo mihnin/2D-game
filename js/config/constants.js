@@ -14,6 +14,12 @@ export const PLAYER_INVULNERABILITY_TIME = 1000; // ms
 export const PLAYER_START_X = 100;
 export const PLAYER_START_Y = GROUND_Y;
 
+// Y-axis movement (depth, Streets of Rage style)
+export const MIN_WALK_Y = 300;        // upper boundary of walk zone
+export const MAX_WALK_Y = 430;        // lower boundary
+export const PLAYER_SPEED_Y = 150;    // player Y movement speed
+export const ENEMY_Y_DRIFT_SPEED = 20; // enemy Y drift speed
+
 // Jump physics
 export const JUMP_VELOCITY = -500; // initial upward velocity
 export const GRAVITY = 1200; // px/sec^2
@@ -24,6 +30,7 @@ export const ENEMY_CONTACT_COOLDOWN = 1000; // ms
 export const ENEMY_MAX_ON_SCREEN = 5;
 
 // Level config
+// musicStyle: 1 = default drum loop, 2 = intense loop, etc.
 export const LEVELS = [
   {
     id: 1,
@@ -31,8 +38,9 @@ export const LEVELS = [
     scoreThreshold: 0,
     enemyHP: 30,
     enemySpeedMultiplier: 1.0,
-    spawnInterval: 3000, // ms
+    spawnInterval: 3000,
     background: 'level1',
+    musicStyle: 1,
   },
   {
     id: 2,
@@ -42,6 +50,7 @@ export const LEVELS = [
     enemySpeedMultiplier: 1.3,
     spawnInterval: 2500,
     background: 'level2',
+    musicStyle: 1,
   },
   {
     id: 3,
@@ -51,12 +60,43 @@ export const LEVELS = [
     enemySpeedMultiplier: 1.6,
     spawnInterval: 2000,
     background: 'level3',
+    musicStyle: 1,
+  },
+  {
+    id: 4,
+    name: 'Пепелище',
+    scoreThreshold: 3000,
+    enemyHP: 90,
+    enemySpeedMultiplier: 1.8,
+    spawnInterval: 1800,
+    background: 'level4',
+    musicStyle: 2,
+  },
+  {
+    id: 5,
+    name: 'Мёртвый квартал',
+    scoreThreshold: 5000,
+    enemyHP: 110,
+    enemySpeedMultiplier: 2.0,
+    spawnInterval: 1500,
+    background: 'level5',
+    musicStyle: 2,
+  },
+  {
+    id: 6,
+    name: 'Точка невозврата',
+    scoreThreshold: 8000,
+    enemyHP: 140,
+    enemySpeedMultiplier: 2.3,
+    spawnInterval: 1200,
+    background: 'level6',
+    musicStyle: 2,
   },
 ];
 
 // Scoring
 export const KILL_SCORE = 100;
-export const VICTORY_SCORE = 3000;
+export const VICTORY_SCORE = 12000;
 
 // Combo
 export const COMBO_TIMEOUT = 2000; // ms before combo resets
@@ -72,7 +112,7 @@ export const CAMERA_SHAKE_INTENSITY = 4; // px
 export const CAMERA_SHAKE_DURATION = 200; // ms
 
 // Enemy base speed
-export const ENEMY_BASE_SPEED = 80; // px/sec
+export const ENEMY_BASE_SPEED = 60; // px/sec
 
 // Colors
 export const COLORS = {

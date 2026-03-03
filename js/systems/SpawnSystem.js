@@ -1,5 +1,5 @@
 import { Enemy } from '../entities/Enemy.js';
-import { ENEMY_MAX_ON_SCREEN, GROUND_Y, CANVAS_WIDTH } from '../config/constants.js';
+import { ENEMY_MAX_ON_SCREEN, MIN_WALK_Y, MAX_WALK_Y, CANVAS_WIDTH } from '../config/constants.js';
 
 export class SpawnSystem {
   constructor() {
@@ -23,7 +23,7 @@ export class SpawnSystem {
     // Spawn timer
     this.spawnTimer += dt * 1000;
     if (this.spawnTimer >= this.spawnInterval && this.enemies.length < ENEMY_MAX_ON_SCREEN) {
-      this.spawn(cameraX, player);
+      this.spawn(cameraX);
       this.spawnTimer = 0;
     }
 
@@ -33,24 +33,19 @@ export class SpawnSystem {
     }
   }
 
-  spawn(cameraX, player) {
-    // Spawn enemy off right edge of screen
+  spawn(cameraX) {
+    // Spawn enemy off right edge of screen at random Y depth
     const spawnX = cameraX + CANVAS_WIDTH + 50;
-    const enemyHeight = 120;
-    const spawnY = GROUND_Y;
+    const spawnY = MIN_WALK_Y + Math.random() * (MAX_WALK_Y - MIN_WALK_Y);
 
-    const enemy = new Enemy(spawnX, spawnY, this.enemyHP, this.speedMultiplier);
-    enemy.setTarget(player);
+    const enemyType = Math.random() < 0.5 ? 'enemy2' : 'enemy3';
+    const enemy = new Enemy(spawnX, spawnY, this.enemyHP, this.speedMultiplier, enemyType);
     this.enemies.push(enemy);
     return enemy;
   }
 
   getEnemies() {
     return this.enemies;
-  }
-
-  getAliveEnemies() {
-    return this.enemies.filter((e) => e.isAlive() && !e.isDead());
   }
 
   reset() {

@@ -5,10 +5,12 @@ export class PauseScene {
     this.sceneManager = sceneManager;
     this.input = inputManager;
     this.gameScene = null;
+    this.audio = null;
   }
 
   enter(data) {
     this.gameScene = data?.gameScene || null;
+    this.audio = data?.audio || null;
   }
 
   exit() {}
@@ -17,11 +19,15 @@ export class PauseScene {
     if (this.input.isKeyPressed('Escape') || this.input.isKeyPressed('Space')) {
       // Resume game
       if (this.gameScene) {
-        this.sceneManager.currentScene = this.gameScene;
-        this.sceneManager.currentSceneName = 'game';
+        if (this.audio) {
+          this.audio.resume();
+          this.audio.startMusic();
+        }
+        this.sceneManager.resumeTo('game');
       }
     }
     if (this.input.isKeyPressed('KeyM')) {
+      if (this.audio) this.audio.stopMusic();
       this.sceneManager.switch('menu');
     }
   }

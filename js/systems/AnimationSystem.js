@@ -79,10 +79,6 @@ export class AnimationController {
     return null;
   }
 
-  isFinished() {
-    return this.finished;
-  }
-
   getCurrentAnimationName() {
     return this.currentAnimation;
   }

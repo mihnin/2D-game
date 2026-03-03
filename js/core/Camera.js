@@ -51,13 +51,4 @@ export class Camera {
     return -this.y + this.shakeOffsetY;
   }
 
-  // Is a world-position visible?
-  isVisible(x, y, w, h) {
-    return (
-      x + w > this.x - 50 &&
-      x < this.x + this.width + 50 &&
-      y + h > this.y &&
-      y < this.y + this.height
-    );
-  }
 }

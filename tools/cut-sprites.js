@@ -215,7 +215,90 @@ async function cutSolder() {
 }
 
 // ============================================================================
-// 3. FONE (backgrounds) - 617x1024, split into 3 levels
+// 3. SOLDER2 (enemy2) - 890x1024, auto-detect frames
+// ============================================================================
+async function cutSolder2() {
+  console.log('\n--- Cutting solde2.png (enemy2 sprites) ---');
+  const src = path.join(ROOT, 'solde2.png');
+  const outDir = path.join(ROOT, 'assets', 'sprites', 'enemy2');
+  const meta = await sharp(src).metadata();
+  console.log(`  Source: ${meta.width}x${meta.height}`);
+
+  const animations = {
+    walkRight: [
+      { x: 45, y: 79, w: 145, h: 316 },
+      { x: 203, y: 79, w: 115, h: 316 },
+      { x: 339, y: 79, w: 105, h: 316 },
+      { x: 465, y: 79, w: 121, h: 316 },
+      { x: 604, y: 79, w: 118, h: 316 },
+      { x: 735, y: 79, w: 138, h: 315 },
+    ],
+    deathRight: [
+      { x: 73, y: 483, w: 109, h: 296 },
+      { x: 266, y: 496, w: 162, h: 280 },
+      { x: 439, y: 534, w: 182, h: 242 },
+      { x: 635, y: 560, w: 231, h: 188 },
+      { x: 52, y: 856, w: 265, h: 126 },
+      { x: 329, y: 850, w: 226, h: 132 },
+      { x: 568, y: 877, w: 296, h: 104 },
+    ],
+  };
+
+  for (const [animName, frames] of Object.entries(animations)) {
+    for (let i = 0; i < frames.length; i++) {
+      const f = frames[i];
+      const fileName = `${animName}_${i}.png`;
+      const outPath = path.join(outDir, fileName);
+      await extractAndSave(src, f.x, f.y, f.w, f.h, outPath);
+      console.log(`  saved ${fileName}  (x=${f.x}, y=${f.y}, ${f.w}x${f.h})`);
+    }
+  }
+}
+
+// ============================================================================
+// 4. SOLDER3 (enemy3) - 718x1024
+// ============================================================================
+async function cutSolder3() {
+  console.log('\n--- Cutting 3.png (enemy3 sprites) ---');
+  const src = path.join(ROOT, '3.png');
+  const outDir = path.join(ROOT, 'assets', 'sprites', 'enemy3');
+  const meta = await sharp(src).metadata();
+  console.log(`  Source: ${meta.width}x${meta.height}`);
+
+  const animations = {
+    walkRight: [
+      { x: 5, y: 24, w: 119, h: 245 },
+      { x: 131, y: 24, w: 97, h: 245 },
+      { x: 241, y: 24, w: 108, h: 245 },
+      { x: 363, y: 24, w: 104, h: 245 },
+      { x: 475, y: 24, w: 123, h: 244 },
+      { x: 602, y: 24, w: 97, h: 245 },
+    ],
+    deathRight: [
+      { x: 17, y: 308, w: 137, h: 235 },
+      { x: 163, y: 340, w: 161, h: 205 },
+      { x: 329, y: 363, w: 175, h: 182 },
+      { x: 509, y: 388, w: 204, h: 153 },
+      { x: 28, y: 618, w: 288, h: 136 },
+      { x: 378, y: 617, w: 299, h: 124 },
+      { x: 39, y: 810, w: 279, h: 153 },
+      { x: 360, y: 808, w: 341, h: 162 },
+    ],
+  };
+
+  for (const [animName, frames] of Object.entries(animations)) {
+    for (let i = 0; i < frames.length; i++) {
+      const f = frames[i];
+      const fileName = `${animName}_${i}.png`;
+      const outPath = path.join(outDir, fileName);
+      await extractAndSave(src, f.x, f.y, f.w, f.h, outPath);
+      console.log(`  saved ${fileName}  (x=${f.x}, y=${f.y}, ${f.w}x${f.h})`);
+    }
+  }
+}
+
+// ============================================================================
+// 5. FONE (backgrounds) - 617x1024, split into 3 levels
 // NO background removal — these are full background images
 // ============================================================================
 async function cutFone() {
@@ -238,6 +321,32 @@ async function cutFone() {
 }
 
 // ============================================================================
+// 6. FONE2 (backgrounds set 2) - 610x1024, split into 3 levels
+// NO background removal
+// ============================================================================
+async function cutFone2() {
+  console.log('\n--- Cutting fone2.png (backgrounds set 2) ---');
+  const src = path.join(ROOT, 'fone2.png');
+  if (!fs.existsSync(src)) {
+    console.log('  fone2.png not found, skipping');
+    return;
+  }
+  const outDir = path.join(ROOT, 'assets', 'backgrounds');
+
+  const levels = [
+    { name: 'level4.png', y: 0,   h: 341 },
+    { name: 'level5.png', y: 341, h: 342 },
+    { name: 'level6.png', y: 683, h: 341 },
+  ];
+
+  for (const level of levels) {
+    const outPath = path.join(outDir, level.name);
+    await extractAndSave(src, 0, level.y, 610, level.h, outPath, true);
+    console.log(`  saved ${level.name}  (y=${level.y}, h=${level.h})`);
+  }
+}
+
+// ============================================================================
 // Main
 // ============================================================================
 async function main() {
@@ -245,7 +354,10 @@ async function main() {
 
   await cutAvatar();
   await cutSolder();
+  await cutSolder2();
+  await cutSolder3();
   await cutFone();
+  await cutFone2();
 
   console.log('\n=== Done! ===');
 }

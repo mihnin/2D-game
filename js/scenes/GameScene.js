@@ -1,5 +1,5 @@
-import { CANVAS_WIDTH, CANVAS_HEIGHT, COLORS, CAMERA_SHAKE_INTENSITY, CAMERA_SHAKE_DURATION, GROUND_Y } from '../config/constants.js';
-import { HERO_SPRITES, ENEMY_SPRITES, BACKGROUND_REGIONS } from '../config/spriteData.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, COLORS, CAMERA_SHAKE_INTENSITY, CAMERA_SHAKE_DURATION, MAX_WALK_Y } from '../config/constants.js';
+import { HERO_SPRITES, BACKGROUND_REGIONS } from '../config/spriteData.js';
 import { Player, PlayerState } from '../entities/Player.js';
 import { Camera } from '../core/Camera.js';
 import { EventBus } from '../core/EventBus.js';
@@ -8,13 +8,13 @@ import { CombatSystem } from '../systems/CombatSystem.js';
 import { SpawnSystem } from '../systems/SpawnSystem.js';
 import { LevelSystem } from '../systems/LevelSystem.js';
 import { ParticleSystem } from '../systems/ParticleSystem.js';
-import { SpriteSystem } from '../systems/SpriteSystem.js';
 
 export class GameScene {
-  constructor(sceneManager, inputManager, assetLoader) {
+  constructor(sceneManager, inputManager, assetLoader, audioManager) {
     this.sceneManager = sceneManager;
     this.input = inputManager;
     this.assets = assetLoader;
+    this.audio = audioManager || null;
     this.eventBus = new EventBus();
     this.camera = new Camera();
     this.collision = new CollisionSystem();
@@ -22,7 +22,6 @@ export class GameScene {
     this.spawner = new SpawnSystem();
     this.levels = new LevelSystem(this.eventBus);
     this.particles = new ParticleSystem();
-    this.sprites = new SpriteSystem(assetLoader);
     this.player = null;
     this.wasPunching = false;
     this.currentBgKey = 'level1';
@@ -35,10 +34,17 @@ export class GameScene {
     this.levels.reset();
     this.particles.clear();
     this.wasPunching = false;
+    this.screenFlash = 0;
 
     // Configure initial level
     this.spawner.configure(this.levels.getCurrentLevel());
     this.currentBgKey = 'level1';
+
+    // Start audio
+    if (this.audio) {
+      this.audio.resume();
+      this.audio.startMusic();
+    }
 
     // Listen for events
     this.eventBus.clear();
@@ -50,15 +56,36 @@ export class GameScene {
 
     this.eventBus.on('enemyHit', (data) => {
       this.particles.spawnHitEffect(data.x, data.y);
+      if (this.audio) this.audio.playHitSound();
     });
 
     this.eventBus.on('playerHit', () => {
       this.camera.shake(CAMERA_SHAKE_INTENSITY, CAMERA_SHAKE_DURATION);
+      if (this.audio) this.audio.playPlayerHurtSound();
+    });
+
+    this.eventBus.on('comboUpdate', (data) => {
+      if (data.count >= 3) {
+        this.screenFlash = 150; // ms
+        // Spawn sparks at player's attack position
+        if (this.player && this.player.attackBox) {
+          const ab = this.player.attackBox;
+          this.particles.spawnComboSparks(
+            ab.x + ab.width / 2,
+            ab.y + ab.height / 2,
+            data.multiplier || 2
+          );
+        }
+      }
     });
 
     this.eventBus.on('levelUp', (data) => {
       this.currentBgKey = data.level.background;
       this.spawner.configure(data.level);
+      // Switch music style when entering a new world
+      if (this.audio && data.level.musicStyle) {
+        this.audio.setMusicStyle(data.level.musicStyle);
+      }
     });
 
     this.eventBus.on('gameOver', (data) => {
@@ -75,12 +102,19 @@ export class GameScene {
 
   exit() {
     this.eventBus.clear();
+    if (this.audio) this.audio.stopMusic();
   }
 
   update(dt) {
+    // Mute toggle
+    if (this.input.isMute && this.input.isMute()) {
+      if (this.audio) this.audio.toggleMute();
+    }
+
     // Pause
     if (this.input.isPause()) {
-      this.sceneManager.switch('pause', { gameScene: this });
+      if (this.audio) this.audio.stopMusic();
+      this.sceneManager.switch('pause', { gameScene: this, audio: this.audio });
       return;
     }
 
@@ -119,6 +153,12 @@ export class GameScene {
 
     // Particles
     this.particles.update(dt);
+
+    // Screen flash decay
+    if (this.screenFlash > 0) {
+      this.screenFlash -= dt * 1000;
+      if (this.screenFlash < 0) this.screenFlash = 0;
+    }
   }
 
   render(ctx) {
@@ -131,7 +171,7 @@ export class GameScene {
 
     // Ground line
     ctx.save();
-    const groundScreenY = GROUND_Y + this.player.height + this.camera.getDrawY();
+    const groundScreenY = MAX_WALK_Y + this.player.height + this.camera.getDrawY();
     ctx.strokeStyle = 'rgba(212, 165, 116, 0.3)';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -140,28 +180,47 @@ export class GameScene {
     ctx.stroke();
     ctx.restore();
 
-    // Enemies
+    // Depth-sorted rendering: entities with higher Y are drawn on top
     const enemies = this.spawner.getEnemies();
+    const renderables = [];
     for (const enemy of enemies) {
-      this.renderEnemy(ctx, enemy);
+      if (!enemy.isDead()) {
+        renderables.push({ type: 'enemy', entity: enemy, y: enemy.y });
+      }
     }
+    if (this.player.state !== PlayerState.DEAD) {
+      renderables.push({ type: 'player', entity: this.player, y: this.player.y });
+    }
+    renderables.sort((a, b) => a.y - b.y);
 
-    // Player
-    this.renderPlayer(ctx);
+    for (const r of renderables) {
+      if (r.type === 'enemy') {
+        this.renderEnemy(ctx, r.entity);
+      } else {
+        this.renderPlayer(ctx);
+      }
+    }
 
     // Particles (world space)
     this.particles.render(ctx, this.camera);
+
+    // Screen flash overlay (combo effect)
+    if (this.screenFlash > 0) {
+      const alpha = Math.min(0.3, this.screenFlash / 150 * 0.3);
+      ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    }
 
     // HUD
     this.renderHUD(ctx);
   }
 
   renderBackground(ctx) {
-    const bgImg = this.assets.get('backgrounds');
-    if (!bgImg) return;
-
     const region = BACKGROUND_REGIONS[this.currentBgKey];
     if (!region) return;
+
+    const bgImg = this.assets.get(region.sheet || 'backgrounds');
+    if (!bgImg) return;
 
     // Parallax scrolling — background moves at 0.5x camera speed
     const parallaxX = -this.camera.x * 0.5 + this.camera.shakeOffsetX;
@@ -197,24 +256,54 @@ export class GameScene {
   renderEnemy(ctx, enemy) {
     if (enemy.isDead()) return;
 
-    const drawX = enemy.x + this.camera.getDrawX();
-    const drawY = enemy.y + this.camera.getDrawY();
-    const frameData = enemy.animation.getCurrentFrameData();
-    if (!frameData) return;
+    const renderData = enemy.render(ctx, this.camera);
+    if (!renderData) return;
 
-    const enemyImg = this.assets.get('enemy');
+    const { frameData, drawX, drawY, flashWhite, enemyType, needsFlip } = renderData;
+
+    const imgKey = enemyType;
+    const enemyImg = this.assets.get(imgKey);
     if (!enemyImg) return;
 
     ctx.save();
 
     // White flash on hit
-    if (enemy.flashWhite) {
+    if (flashWhite) {
       ctx.globalAlpha = 0.7;
     }
 
     if (frameData.type === 'rect' && frameData.frame) {
       const f = frameData.frame;
-      ctx.drawImage(enemyImg, f.x, f.y, f.w, f.h, drawX, drawY, enemy.width, enemy.height);
+      let dstW = enemy.width;
+      let dstH = enemy.height;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      // Normalize walk frames: scale proportionally to the widest frame
+      // so variable-width source frames don't cause visual jitter
+      const animName = enemy.animation.getCurrentAnimationName();
+      if (animName && animName.startsWith('walk')) {
+        const anim = enemy.animation.getAnimation();
+        if (anim && Array.isArray(anim.frames)) {
+          let maxW = 0, maxH = 0;
+          for (const fr of anim.frames) {
+            if (fr.w > maxW) maxW = fr.w;
+            if (fr.h > maxH) maxH = fr.h;
+          }
+          dstW = enemy.width * (f.w / maxW);
+          dstH = enemy.height * (f.h / maxH);
+          offsetX = (enemy.width - dstW) / 2;
+          offsetY = enemy.height - dstH;
+        }
+      }
+
+      if (needsFlip) {
+        ctx.translate(drawX + enemy.width, drawY);
+        ctx.scale(-1, 1);
+        ctx.drawImage(enemyImg, f.x, f.y, f.w, f.h, offsetX, offsetY, dstW, dstH);
+      } else {
+        ctx.drawImage(enemyImg, f.x, f.y, f.w, f.h, drawX + offsetX, drawY + offsetY, dstW, dstH);
+      }
     }
 
     ctx.restore();

@@ -52,13 +52,4 @@ describe('Camera', () => {
     expect(camera.shakeOffsetY).toBe(0);
   });
 
-  test('isVisible() returns true for objects in view', () => {
-    camera.x = 0;
-    expect(camera.isVisible(100, 100, 50, 50)).toBe(true);
-  });
-
-  test('isVisible() returns false for objects far offscreen', () => {
-    camera.x = 0;
-    expect(camera.isVisible(2000, 100, 50, 50)).toBe(false);
-  });
 });

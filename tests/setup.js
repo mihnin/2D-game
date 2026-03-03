@@ -76,3 +76,36 @@ class MockImage {
   }
 }
 global.Image = MockImage;
+
+// Mock AudioContext for Web Audio API
+class MockGainNode {
+  constructor() { this.gain = { value: 1, setValueAtTime: jest.fn(), linearRampToValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() }; }
+  connect() { return this; }
+  disconnect() {}
+}
+class MockOscillatorNode {
+  constructor() { this.type = 'sine'; this.frequency = { value: 440, setValueAtTime: jest.fn(), linearRampToValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() }; }
+  connect() { return this; }
+  disconnect() {}
+  start() {}
+  stop() {}
+}
+class MockBufferSourceNode {
+  constructor() { this.buffer = null; this.loop = false; this.playbackRate = { value: 1 }; }
+  connect() { return this; }
+  disconnect() {}
+  start() {}
+  stop() {}
+}
+class MockAudioContext {
+  constructor() { this.currentTime = 0; this.state = 'running'; this.destination = {}; }
+  createGain() { return new MockGainNode(); }
+  createOscillator() { return new MockOscillatorNode(); }
+  createBufferSource() { return new MockBufferSourceNode(); }
+  createBuffer(channels, length, sampleRate) { return { getChannelData: () => new Float32Array(length) }; }
+  createBiquadFilter() { return { type: 'lowpass', frequency: { value: 350, setValueAtTime: jest.fn() }, Q: { value: 1 }, connect() { return this; }, disconnect() {} }; }
+  resume() { return Promise.resolve(); }
+  close() { return Promise.resolve(); }
+}
+global.AudioContext = MockAudioContext;
+global.webkitAudioContext = MockAudioContext;

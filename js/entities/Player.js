@@ -3,8 +3,9 @@ import { AnimationController } from '../systems/AnimationSystem.js';
 import { HERO_SPRITES } from '../config/spriteData.js';
 import {
   PLAYER_MAX_HP, PLAYER_SPEED, PLAYER_START_X, PLAYER_START_Y,
-  JUMP_VELOCITY, GROUND_Y, PLAYER_INVULNERABILITY_TIME,
+  JUMP_VELOCITY, PLAYER_INVULNERABILITY_TIME,
   PUNCH_DURATION, HURT_DURATION, WORLD_WIDTH,
+  MIN_WALK_Y, MAX_WALK_Y, PLAYER_SPEED_Y, GRAVITY,
 } from '../config/constants.js';
 
 // Player states
@@ -26,7 +27,7 @@ export class Player extends Entity {
 
     this.animation = new AnimationController(HERO_SPRITES);
     this.state = PlayerState.IDLE;
-    this.facingRight = true;
+    this.groundY = PLAYER_START_Y;
     this.invulnerable = false;
     this.invulnerableTimer = 0;
     this.punchTimer = 0;
@@ -34,6 +35,7 @@ export class Player extends Entity {
     this.isOnGround = true;
     this.flashVisible = true;
     this.flashTimer = 0;
+    this.walkDirY = 0;
 
     // Hitbox for punch attacks (relative to player position)
     this.attackBox = null;
@@ -78,6 +80,17 @@ export class Player extends Entity {
         if (this.isOnGround && this.state === PlayerState.WALKING) {
           this.state = PlayerState.IDLE;
           this.animation.play('idle');
+        }
+      }
+
+      // Y-axis depth movement — store direction, apply in update()
+      if (this.isOnGround) {
+        if (input.isUp && input.isUp()) {
+          this.walkDirY = -1;
+        } else if (input.isDown && input.isDown()) {
+          this.walkDirY = 1;
+        } else {
+          this.walkDirY = 0;
         }
       }
     }
@@ -187,15 +200,23 @@ export class Player extends Entity {
 
     // Apply gravity for jumping
     if (!this.isOnGround) {
-      this.velocityY += 1200 * dt; // GRAVITY
+      this.velocityY += GRAVITY * dt;
       this.y += this.velocityY * dt;
 
-      // Ground check
-      if (this.y >= GROUND_Y) {
-        this.y = GROUND_Y;
+      // Ground check — land at current groundY
+      if (this.y >= this.groundY) {
+        this.y = this.groundY;
         this.velocityY = 0;
         this.onLand();
       }
+    }
+
+    // Y-axis depth movement (when on ground)
+    if (this.isOnGround && this.walkDirY !== 0) {
+      this.groundY += this.walkDirY * PLAYER_SPEED_Y * dt;
+      if (this.groundY < MIN_WALK_Y) this.groundY = MIN_WALK_Y;
+      if (this.groundY > MAX_WALK_Y) this.groundY = MAX_WALK_Y;
+      this.y = this.groundY;
     }
 
     // Horizontal movement
@@ -212,19 +233,6 @@ export class Player extends Entity {
     this.animation.update(dt);
   }
 
-  render(ctx, camera) {
-    if (this.state === PlayerState.DEAD) return;
-    if (this.invulnerable && !this.flashVisible) return;
-
-    const drawX = this.x + camera.getDrawX();
-    const drawY = this.y + camera.getDrawY();
-
-    const frameData = this.animation.getCurrentFrameData();
-    if (!frameData) return;
-
-    return { frameData, drawX, drawY, width: this.width, height: this.height };
-  }
-
   reset() {
     this.x = PLAYER_START_X;
     this.y = PLAYER_START_Y;
@@ -237,6 +245,8 @@ export class Player extends Entity {
     this.isOnGround = true;
     this.flashVisible = true;
     this.attackBox = null;
+    this.groundY = PLAYER_START_Y;
+    this.walkDirY = 0;
     this.animation.play('idle');
   }
 }
