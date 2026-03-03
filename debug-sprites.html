@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html><head><title>Sprite Debug</title></head>
+<body style="background:#222;color:#fff;font-family:monospace;padding:20px">
+<h2>Sprite Sheet Analyzer</h2>
+<pre id="output">Loading...</pre>
+<h3>solder.png with detected bands</h3>
+<canvas id="c1" style="border:1px solid red"></canvas>
+<h3>avatar.png</h3>
+<canvas id="c2" style="border:1px solid blue"></canvas>
+<script>
+function isBackground(r, g, b, a) {
+  if (a < 10) return true;
+  const spread = Math.max(r,g,b) - Math.min(r,g,b);
+  return spread < 15 && Math.min(r,g,b) > 180;
+}
+
+async function analyze(src, canvasId) {
+  const img = new Image();
+  await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = src; });
+  const canvas = document.getElementById(canvasId);
+  canvas.width = img.width; canvas.height = img.height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  const data = ctx.getImageData(0, 0, img.width, img.height).data;
+  const w = img.width, h = img.height;
+
+  const out = document.getElementById('output');
+  out.textContent += `\n=== ${src} (${w}x${h}) ===\n`;
+
+  // Check alpha
+  let alphaPixels = 0;
+  for (let i = 3; i < data.length; i += 4) if (data[i] < 250) alphaPixels++;
+  out.textContent += `Pixels with alpha < 250: ${alphaPixels} (${(alphaPixels*100/(w*h)).toFixed(1)}%)\n`;
+
+  // Find horizontal content bands
+  const rowContent = [];
+  for (let y = 0; y < h; y++) {
+    let count = 0;
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (!isBackground(data[i], data[i+1], data[i+2], data[i+3])) count++;
+    }
+    rowContent.push(count);
+  }
+
+  let inBand = false, bandStart = 0;
+  const bands = [];
+  for (let y = 0; y <= h; y++) {
+    const has = y < h && rowContent[y] > 8;
+    if (has && !inBand) { bandStart = y; inBand = true; }
+    if (!has && inBand) { bands.push({ y: bandStart, h: y - bandStart }); inBand = false; }
+  }
+
+  out.textContent += `\nContent bands:\n`;
+  bands.forEach((b, i) => {
+    out.textContent += `  Band ${i}: y=${b.y}  h=${b.h}  (y ${b.y} to ${b.y+b.h})\n`;
+  });
+
+  // For each band, find individual sprite frames
+  out.textContent += `\nPer-band frames:\n`;
+  bands.forEach((band, bi) => {
+    const colContent = new Array(w).fill(0);
+    for (let y = band.y; y < band.y + band.h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        if (!isBackground(data[i], data[i+1], data[i+2], data[i+3])) colContent[x]++;
+      }
+    }
+    let inCol = false, colStart = 0;
+    const frames = [];
+    for (let x = 0; x <= w; x++) {
+      const has = x < w && colContent[x] > 2;
+      if (has && !inCol) { colStart = x; inCol = true; }
+      if (!has && inCol) { frames.push({ x: colStart, w: x - colStart }); inCol = false; }
+    }
+    out.textContent += `  Band ${bi} (y=${band.y}, h=${band.h}): ${frames.length} frames\n`;
+    frames.forEach((f, fi) => {
+      out.textContent += `    [${fi}] { x: ${f.x}, y: ${band.y}, w: ${f.w}, h: ${band.h} }\n`;
+    });
+
+    // Draw band rectangles on canvas
+    ctx.strokeStyle = `hsl(${bi * 60}, 100%, 50%)`;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0, band.y, w, band.h);
+    frames.forEach(f => {
+      ctx.strokeRect(f.x, band.y, f.w, band.h);
+    });
+  });
+
+  return bands;
+}
+
+document.getElementById('output').textContent = '';
+analyze('solder.png', 'c1').then(() => analyze('avatar.png', 'c2')).then(() => {
+  document.getElementById('output').textContent += '\nDone!';
+});
+</script>
+</body>
+</html>
