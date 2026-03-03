@@ -23,14 +23,9 @@ describe('AudioManager', () => {
     expect(audio.masterGain).not.toBeNull();
   });
 
-  test('startMusic does nothing without context', () => {
+  test('startMusic creates context and starts playing', () => {
     audio.startMusic();
-    expect(audio.musicPlaying).toBe(false);
-  });
-
-  test('startMusic starts with context', () => {
-    audio._ensureContext();
-    audio.startMusic();
+    expect(audio.ctx).not.toBeNull();
     expect(audio.musicPlaying).toBe(true);
   });
 

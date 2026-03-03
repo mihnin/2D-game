@@ -8,6 +8,7 @@ import { GameScene } from './scenes/GameScene.js';
 import { PauseScene } from './scenes/PauseScene.js';
 import { GameOverScene } from './scenes/GameOverScene.js';
 import { VictoryScene } from './scenes/VictoryScene.js';
+import { HelpScene } from './scenes/HelpScene.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from './config/constants.js';
 
 class Game {
@@ -79,6 +80,7 @@ class Game {
     this.sceneManager.add('pause', new PauseScene(this.sceneManager, this.input));
     this.sceneManager.add('gameover', new GameOverScene(this.sceneManager, this.input));
     this.sceneManager.add('victory', new VictoryScene(this.sceneManager, this.input));
+    this.sceneManager.add('help', new HelpScene(this.sceneManager, this.input, this.assets));
 
     // Start at menu
     this.sceneManager.switch('menu');

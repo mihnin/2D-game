@@ -1,4 +1,4 @@
-import { CANVAS_WIDTH, CANVAS_HEIGHT, COLORS, CAMERA_SHAKE_INTENSITY, CAMERA_SHAKE_DURATION, MAX_WALK_Y } from '../config/constants.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, COLORS, CAMERA_SHAKE_INTENSITY, CAMERA_SHAKE_DURATION, MAX_WALK_Y, LEVEL_ANNOUNCE_DURATION } from '../config/constants.js';
 import { HERO_SPRITES, BACKGROUND_REGIONS } from '../config/spriteData.js';
 import { Player, PlayerState } from '../entities/Player.js';
 import { Camera } from '../core/Camera.js';
@@ -24,7 +24,10 @@ export class GameScene {
     this.particles = new ParticleSystem();
     this.player = null;
     this.wasPunching = false;
+    this.wasOnGround = true;
     this.currentBgKey = 'level1';
+    this.hitstopTimer = 0;
+    this.levelAnnounce = null; // { name, timer }
   }
 
   enter() {
@@ -34,7 +37,10 @@ export class GameScene {
     this.levels.reset();
     this.particles.clear();
     this.wasPunching = false;
+    this.wasOnGround = true;
     this.screenFlash = 0;
+    this.hitstopTimer = 0;
+    this.levelAnnounce = null;
 
     // Configure initial level
     this.spawner.configure(this.levels.getCurrentLevel());
@@ -51,12 +57,16 @@ export class GameScene {
 
     this.eventBus.on('enemyKilled', (data) => {
       this.particles.spawnDamageNumber(data.enemy.x + data.enemy.width / 2, data.enemy.y, data.points);
+      // Small camera shake on kill
+      this.camera.shake(2, 100);
       this.levels.checkProgression(data.totalScore);
     });
 
     this.eventBus.on('enemyHit', (data) => {
       this.particles.spawnHitEffect(data.x, data.y);
       if (this.audio) this.audio.playHitSound();
+      // Hitstop — brief freeze for punch impact feel
+      if (data.hitstopMs) this.hitstopTimer = data.hitstopMs;
     });
 
     this.eventBus.on('playerHit', () => {
@@ -82,6 +92,11 @@ export class GameScene {
     this.eventBus.on('levelUp', (data) => {
       this.currentBgKey = data.level.background;
       this.spawner.configure(data.level);
+      // Level-up announcement
+      this.levelAnnounce = {
+        name: `LVL ${data.level.id} — ${data.level.name}`,
+        timer: LEVEL_ANNOUNCE_DURATION,
+      };
       // Switch music style when entering a new world
       if (this.audio && data.level.musicStyle) {
         this.audio.setMusicStyle(data.level.musicStyle);
@@ -107,7 +122,7 @@ export class GameScene {
 
   update(dt) {
     // Mute toggle
-    if (this.input.isMute && this.input.isMute()) {
+    if (this.input.isMute()) {
       if (this.audio) this.audio.toggleMute();
     }
 
@@ -118,9 +133,34 @@ export class GameScene {
       return;
     }
 
+    // Hitstop — freeze gameplay for impact feel (particles/camera still update)
+    if (this.hitstopTimer > 0) {
+      this.hitstopTimer -= dt * 1000;
+      this.camera.update(dt);
+      this.particles.update(dt);
+      if (this.screenFlash > 0) {
+        this.screenFlash -= dt * 1000;
+        if (this.screenFlash < 0) this.screenFlash = 0;
+      }
+      if (this.levelAnnounce) {
+        this.levelAnnounce.timer -= dt * 1000;
+        if (this.levelAnnounce.timer <= 0) this.levelAnnounce = null;
+      }
+      return;
+    }
+
     // Player input and update
     this.player.handleInput(this.input);
     this.player.update(dt);
+
+    // Landing dust particles
+    if (!this.wasOnGround && this.player.isOnGround) {
+      this.particles.spawnDust(
+        this.player.x + this.player.width / 2,
+        this.player.y + this.player.height
+      );
+    }
+    this.wasOnGround = this.player.isOnGround;
 
     // Track punch end for combo hit tracking
     if (this.wasPunching && this.player.state !== PlayerState.PUNCHING) {
@@ -158,6 +198,12 @@ export class GameScene {
     if (this.screenFlash > 0) {
       this.screenFlash -= dt * 1000;
       if (this.screenFlash < 0) this.screenFlash = 0;
+    }
+
+    // Level announce timer
+    if (this.levelAnnounce) {
+      this.levelAnnounce.timer -= dt * 1000;
+      if (this.levelAnnounce.timer <= 0) this.levelAnnounce = null;
     }
   }
 
@@ -211,6 +257,22 @@ export class GameScene {
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     }
 
+    // Level-up announcement overlay
+    if (this.levelAnnounce) {
+      const progress = this.levelAnnounce.timer / LEVEL_ANNOUNCE_DURATION;
+      const alpha = progress > 0.8 ? (1 - progress) / 0.2 : progress > 0.2 ? 1 : progress / 0.2;
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.6;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, CANVAS_HEIGHT / 2 - 40, CANVAS_WIDTH, 80);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = COLORS.combo;
+      ctx.font = 'bold 36px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(this.levelAnnounce.name, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 12);
+      ctx.restore();
+    }
+
     // HUD
     this.renderHUD(ctx);
   }
@@ -225,10 +287,10 @@ export class GameScene {
     // Parallax scrolling — background moves at 0.5x camera speed
     const parallaxX = -this.camera.x * 0.5 + this.camera.shakeOffsetX;
     const bgWidth = CANVAS_WIDTH;
-    const startX = parallaxX % bgWidth;
+    const startX = ((parallaxX % bgWidth) + bgWidth) % bgWidth - bgWidth;
 
     // Tile background to fill screen
-    for (let x = startX - bgWidth; x < CANVAS_WIDTH; x += bgWidth) {
+    for (let x = startX; x < CANVAS_WIDTH; x += bgWidth) {
       ctx.drawImage(bgImg, region.x, region.y, region.w, region.h, x, 0, bgWidth, CANVAS_HEIGHT);
     }
   }
@@ -308,18 +370,26 @@ export class GameScene {
 
     ctx.restore();
 
-    // Enemy HP bar
+    // Enemy HP bar (larger for boss)
     if (enemy.isAlive() && enemy.hp < enemy.maxHp) {
-      const barWidth = 40;
-      const barHeight = 4;
+      const isBoss = enemy.isBoss;
+      const barWidth = isBoss ? 80 : 40;
+      const barHeight = isBoss ? 6 : 4;
       const barX = drawX + (enemy.width - barWidth) / 2;
-      const barY = drawY - 10;
+      const barY = drawY - (isBoss ? 16 : 10);
       const hpRatio = enemy.hp / enemy.maxHp;
 
       ctx.fillStyle = '#333';
       ctx.fillRect(barX, barY, barWidth, barHeight);
-      ctx.fillStyle = COLORS.enemyHP;
+      ctx.fillStyle = isBoss ? COLORS.combo : COLORS.enemyHP;
       ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
+
+      if (isBoss) {
+        ctx.fillStyle = COLORS.accent;
+        ctx.font = 'bold 10px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('BOSS', drawX + enemy.width / 2, barY - 3);
+      }
     }
   }
 

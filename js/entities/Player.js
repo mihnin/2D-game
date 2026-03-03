@@ -85,9 +85,9 @@ export class Player extends Entity {
 
       // Y-axis depth movement — store direction, apply in update()
       if (this.isOnGround) {
-        if (input.isUp && input.isUp()) {
+        if (input.isUp()) {
           this.walkDirY = -1;
-        } else if (input.isDown && input.isDown()) {
+        } else if (input.isDown()) {
           this.walkDirY = 1;
         } else {
           this.walkDirY = 0;

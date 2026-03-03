@@ -19,25 +19,27 @@ node tools/cut-sprites.js         # Re-generate pre-cut sprite PNGs in assets/
 
 ### Directory Layout
 
-`js/` is organized as: `config/` (constants, sprite data), `core/` (Game loop, Camera, EventBus, InputManager, SceneManager, AssetLoader, AudioManager), `entities/` (Entity base, Player, Enemy), `scenes/` (Menu, Game, Pause, GameOver, Victory), `systems/` (Animation, Collision, Combat, Level, Particle, Physics, Spawn, Sprite), `utils/` (helpers). Tests mirror this under `tests/`.
+`js/` is organized as: `config/` (constants, sprite data), `core/` (Game loop, Camera, EventBus, InputManager, SceneManager, AssetLoader, AudioManager), `entities/` (Entity base, Player, Enemy), `scenes/` (Menu, Game, Help, Pause, GameOver, Victory), `systems/` (Animation, Collision, Combat, Level, Particle, Spawn), `utils/` (helpers). Tests mirror this under `tests/`.
 
 ### Key Layers
 
 - **`js/main.js`** — Entry point. Creates `Game` class that wires together `AssetLoader`, `InputManager`, `AudioManager`, `SceneManager`, and `GameLoop`. Assets loaded: `avatar.png` (hero), `solde2.png` (enemy2), `3.png` (enemy3), `fone.png` (backgrounds 1-3), `fone2.png` (backgrounds 4-6). AudioContext is unlocked on first user interaction.
-- **`js/config/constants.js`** — All gameplay tuning values (HP, speeds, level thresholds, combo multipliers, colors, Y-axis walk zone). Key values: `VICTORY_SCORE=12000`, `WORLD_WIDTH=3000`, 6 levels across 2 worlds with progressively harder enemies. Each level has a `musicStyle` field (1=standard, 2=intense).
+- **`js/config/constants.js`** — All gameplay tuning values (HP, speeds, level thresholds, combo multipliers, colors, Y-axis walk zone). Key values: `VICTORY_SCORE=12000`, `WORLD_WIDTH=3000`, 6 levels across 2 worlds with progressively harder enemies. Each level has a `musicStyle` field (1=standard 120 BPM, 2=intense 140 BPM). `COMBO_MULTIPLIERS` array must be sorted descending by `hits`.
 - **`js/config/spriteData.js`** — Frame coordinates for sprite sheets. Hero uses uniform 4x4 grid (154x256 per frame). Enemies use explicit `{x, y, w, h}` rectangles per frame. `ENEMY2_SPRITES` and `ENEMY3_SPRITES` both have `mirrorLeft: true` — the renderer flips via `ctx.scale(-1,1)` for left-facing animations. `BACKGROUND_REGIONS` has a `sheet` property per region pointing to the loaded image key.
 
 ### Scene System
 
-Scenes have `enter(data)`, `exit()`, `update(dt)`, `render(ctx)` lifecycle. SceneManager handles switching. Five scenes: `menu`, `game`, `pause`, `gameover`, `victory`. The pause scene holds a reference to the game scene to render behind its overlay and manages audio pause/resume.
+Scenes have `enter(data)`, `exit()`, `update(dt)`, `render(ctx)` lifecycle. SceneManager handles switching via `switch(name, data)` (calls exit/enter) and `resumeTo(name)` (calls exit but skips enter — used by PauseScene to resume without resetting game state). Six scenes: `menu`, `game`, `help`, `pause`, `gameover`, `victory`. HelpScene is a scrollable help page (arrow keys/wheel) with all game mechanics, reachable from menu via H key. It reads all values from constants.js so it auto-updates when gameplay is rebalanced.
 
 ### GameScene Orchestration
 
-`GameScene` constructor takes `(sceneManager, inputManager, assetLoader, audioManager)`. `enter()` creates a fresh `Player`, resets all systems, wires up an `EventBus`, and starts music. The update loop: mute check → pause check → player input → player update → enemy spawn/update → collision detection → combat processing → camera follow → particles → screen flash decay. The EventBus connects combat outcomes to progression (`enemyKilled` → `LevelSystem.checkProgression` → potential `levelUp` or `victory` emit → scene switch).
+`GameScene` constructor takes `(sceneManager, inputManager, assetLoader, audioManager)`. `enter()` creates a fresh `Player`, resets all systems, wires up an `EventBus`, and starts music. The update loop: mute check → pause check → **hitstop freeze check** → player input → player update → **landing dust detection** → enemy spawn/update → collision detection → combat processing → camera follow → particles → screen flash decay → **level announce timer**. The EventBus connects combat outcomes to progression (`enemyKilled` → `LevelSystem.checkProgression` → potential `levelUp` or `victory` emit → scene switch).
 
-Rendering uses **depth sorting**: all entities (player + enemies) are sorted by Y position before drawing. Screen flash overlay triggers on combo hits >= 3.
+**Hitstop:** On enemy hit, gameplay freezes for `HITSTOP_DURATION` ms while camera/particles keep updating — creates punch impact feel. **Landing dust:** detects air→ground transition and spawns dust particles. **Camera shake:** small shake (2px, 100ms) on every enemy kill, larger shake on player hit.
 
-On `levelUp`, GameScene updates the background key, reconfigures `SpawnSystem`, and calls `audio.setMusicStyle()` to switch music when entering a new world.
+Rendering uses **depth sorting**: all entities (player + enemies) are sorted by Y position before drawing. Screen flash overlay triggers on combo hits >= 3. **Level-up announcement** renders as centered banner with fade-in/fade-out over `LEVEL_ANNOUNCE_DURATION` ms. **Boss HP bar** is wider (80px), yellow, with "BOSS" label.
+
+On `levelUp`, GameScene updates the background key, reconfigures `SpawnSystem`, shows level announcement, and calls `audio.setMusicStyle()` to switch music when entering a new world.
 
 ### Y-axis Movement (Depth System)
 
@@ -46,6 +48,10 @@ The game uses a Streets-of-Rage-style Y-axis depth system. Player and enemies mo
 ### Entity State Machines
 
 `Player` and `Enemy` each manage their own state (idle/walking/jumping/punching/hurt/dead). State determines which animation plays and what actions are allowed. Player handles its own gravity in `update()`. Entities carry an `AnimationController` from `AnimationSystem.js` that tracks current frame.
+
+**Enemy AI:** Enemies have a `target` (player reference set via `setTarget()`). When within `ENEMY_DETECT_RANGE` (Manhattan distance), enemies chase the player at `ENEMY_CHASE_SPEED_MULTIPLIER` speed and converge on the player's Y depth. Outside detection range, they patrol and drift. **Knockback:** `Enemy.takeDamage(amount, knockbackDir)` displaces the enemy horizontally, clamped to world bounds.
+
+**Boss:** Level 6 has `boss: true`. `SpawnSystem.spawnBoss()` creates a single enemy3 with `BOSS_HP_MULTIPLIER` HP, `BOSS_SIZE_MULTIPLIER` size, `BOSS_SPEED_MULTIPLIER` speed, and `isBoss = true` flag. Boss renders with a larger yellow HP bar and "BOSS" label.
 
 ### Multiple Enemy Types
 
@@ -79,7 +85,7 @@ The source PNGs have white/checkerboard backgrounds instead of true alpha transp
 
 ### Combat → Score → Level Flow
 
-`CollisionSystem` returns hit lists → `CombatSystem.processAttackHits()` applies damage, tracks combo, emits events → `LevelSystem.checkProgression()` checks score thresholds and can advance multiple levels in one call (uses `while` loop) → emits `levelUp` which reconfigures `SpawnSystem` difficulty, swaps background region, and switches music style. `comboUpdate` event triggers screen flash and combo sparks when combo count >= 3.
+`CollisionSystem` returns hit lists → `CombatSystem.processAttackHits()` applies **combo-scaled damage** (`baseDamage * (1 + (comboMultiplier - 1) * COMBO_DAMAGE_SCALE)`), applies **knockback** (direction based on `player.facingRight`), tracks combo, emits events with `hitstopMs` → `LevelSystem.checkProgression()` checks score thresholds and can advance multiple levels in one call (uses `while` loop) → emits `levelUp` which reconfigures `SpawnSystem` difficulty, swaps background region, and switches music style. `comboUpdate` event triggers screen flash and combo sparks when combo count >= 3.
 
 ### Test Setup
 

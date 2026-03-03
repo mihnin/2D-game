@@ -91,6 +91,7 @@ export const LEVELS = [
     spawnInterval: 1200,
     background: 'level6',
     musicStyle: 2,
+    boss: true,
   },
 ];
 
@@ -129,3 +130,25 @@ export const COLORS = {
 export const PUNCH_DURATION = 300; // ms
 export const HURT_DURATION = 400; // ms
 export const DEATH_ANIMATION_DURATION = 1000; // ms
+
+// Hitstop — brief freeze on hit for punch impact feel
+export const HITSTOP_DURATION = 50; // ms
+
+// Knockback — push enemies away on punch hit
+export const KNOCKBACK_FORCE = 150; // px
+
+// Enemy AI — player seeking behavior
+export const ENEMY_DETECT_RANGE = 350; // px — start chasing player
+export const ENEMY_CHASE_SPEED_MULTIPLIER = 1.4; // faster when chasing
+
+// Combo damage scaling — higher combo = more damage
+// Effective damage = baseDamage * (1 + (comboMultiplier - 1) * COMBO_DAMAGE_SCALE)
+export const COMBO_DAMAGE_SCALE = 0.25;
+
+// Level-up announcement overlay duration
+export const LEVEL_ANNOUNCE_DURATION = 2000; // ms
+
+// Boss config (spawns on last level)
+export const BOSS_HP_MULTIPLIER = 5;
+export const BOSS_SIZE_MULTIPLIER = 1.6;
+export const BOSS_SPEED_MULTIPLIER = 0.7; // slower but tanky

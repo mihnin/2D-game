@@ -21,7 +21,7 @@ export class MenuScene {
     this.pulseTimer += dt * 3;
 
     if (this.showControls) {
-      if (this.input.isKeyPressed('Escape') || this.input.isKeyPressed('Space') || this.input.isKeyPressed('Enter')) {
+      if (this.input.isKeyPressed('Escape') || this.input.isKeyPressed('Space') || this.input.isKeyPressed('Enter') || this.input.isKeyPressed('KeyC')) {
         this.showControls = false;
       }
     } else {
@@ -30,6 +30,9 @@ export class MenuScene {
       }
       if (this.input.isKeyPressed('KeyC')) {
         this.showControls = true;
+      }
+      if (this.input.isKeyPressed('KeyH')) {
+        this.sceneManager.switch('help');
       }
     }
   }
@@ -43,7 +46,8 @@ export class MenuScene {
     const bgImg = this.assets.get('backgrounds');
     if (bgImg) {
       ctx.globalAlpha = 0.3;
-      ctx.drawImage(bgImg, 0, 0, 617, 341, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      const r = BACKGROUND_REGIONS.level1;
+      ctx.drawImage(bgImg, r.x, r.y, r.w, r.h, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       ctx.globalAlpha = 1;
     }
 
@@ -97,7 +101,7 @@ export class MenuScene {
     ctx.fillStyle = COLORS.secondary;
     ctx.font = '16px Arial';
     ctx.fillText('Press SPACE or ENTER to start', CANVAS_WIDTH / 2, 420);
-    ctx.fillText('Press C for controls', CANVAS_WIDTH / 2, 450);
+    ctx.fillText('Press C for controls  |  Press H for help', CANVAS_WIDTH / 2, 450);
 
     ctx.restore();
   }
